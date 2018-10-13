@@ -183,4 +183,7 @@ Inductive terminal {n} : tm n #c → Prop :=
 
 Inductive red {n} : tm n #c → tm n #c → Prop :=
 | red_push_cong : ∀ {V M M'}, red M M' → red (push V M) (push V M')
-| red_push_pop : ∀ {V M}, red (push V (pop M)) (M ⫽ Sub.inst0 V).
+| red_await_cong : ∀ {M M' N}, red M M' → red (await M N) (await M' N)
+
+| red_push_pop : ∀ {V M}, red (push V (pop M)) (M ⫽ Sub.inst0 V)
+| red_await_ret : ∀ {V N}, red (await (ret V) N) (N ⫽ Sub.inst0 V).
