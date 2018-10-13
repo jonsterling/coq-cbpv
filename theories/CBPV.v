@@ -20,7 +20,8 @@ Inductive tm (n : nat) : sort → Type :=
 | ret : tm n #v → tm n #c
 | pop : tm (S n) #c → tm n #c
 | push : tm n #v → tm n #c → tm n #c
-| unleash : tm n #v → tm n #c.
+| unleash : tm n #v → tm n #c
+| nil : tm n #v.
 
 Arguments var [n].
 Arguments pair [n].
@@ -29,11 +30,13 @@ Arguments ret [n].
 Arguments pop [n].
 Arguments push [n].
 Arguments unleash [n].
+Arguments nil [n].
 
 Equations map {τ} {n1 n2} (ρ : Ren.t n1 n2) (t : tm n1 τ) : tm n2 τ :=
   { map ρ (var i) := var (ρ i);
     map ρ (pair V0 V1) := pair (map ρ V0) (map ρ V1);
     map ρ (hold M) := hold (map ρ M);
+    map ρ nil := nil;
     map ρ (ret V) := ret (map ρ V);
     map ρ (pop M) := pop (map (Ren.cong ρ) M);
     map ρ (push V M) := push (map ρ V) (map ρ M);
@@ -65,6 +68,7 @@ Equations subst {τ} {n1 n2} (σ : @Sub.t (λ n, tm n #v) n1 n2) (t : tm n1 τ) 
   { subst σ (var i) := σ i;
     subst σ (pair V0 V1) := pair (subst σ V0) (subst σ V1);
     subst σ (hold M) := hold (subst σ M);
+    subst σ nil := nil;
     subst σ (ret V) := ret (subst σ V);
     subst σ (pop M) := pop (subst (Sub.cong σ) M);
     subst σ (push V M) := push (subst σ V) (subst σ M);
