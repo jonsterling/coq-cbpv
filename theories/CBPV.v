@@ -20,6 +20,7 @@ Inductive tm (n : nat) : sort → Type :=
 | ret : tm n #v → tm n #c
 | pop : tm (S n) #c → tm n #c
 | push : tm n #v → tm n #c → tm n #c
+| await : tm n #c → tm (S n) #c → tm n #c
 | unleash : tm n #v → tm n #c
 | nil : tm n #v.
 
@@ -30,6 +31,7 @@ Arguments ret [n].
 Arguments pop [n].
 Arguments push [n].
 Arguments unleash [n].
+Arguments await [n].
 Arguments nil [n].
 
 Equations map {τ} {n1 n2} (ρ : Ren.t n1 n2) (t : tm n1 τ) : tm n2 τ :=
@@ -40,6 +42,7 @@ Equations map {τ} {n1 n2} (ρ : Ren.t n1 n2) (t : tm n1 τ) : tm n2 τ :=
     map ρ (ret V) := ret (map ρ V);
     map ρ (pop M) := pop (map (Ren.cong ρ) M);
     map ρ (push V M) := push (map ρ V) (map ρ M);
+    map ρ (await M N) := await (map ρ M) (map (Ren.cong ρ) N);
     map ρ (unleash V) := unleash (map ρ V)
   }.
 
@@ -47,7 +50,7 @@ Hint Rewrite @Ren.cong_id.
 
 Theorem map_id {n τ} (M : tm n τ) : map id M = M.
 Proof.
-  funelim (map id M); f_equal; try by [auto].
+  funelim (map id M); f_equal; try by [auto];
   by autorewrite with core in *; auto.
 Qed.
 
@@ -72,6 +75,7 @@ Equations subst {τ} {n1 n2} (σ : @Sub.t (λ n, tm n #v) n1 n2) (t : tm n1 τ) 
     subst σ (ret V) := ret (subst σ V);
     subst σ (pop M) := pop (subst (Sub.cong σ) M);
     subst σ (push V M) := push (subst σ V) (subst σ M);
+    subst σ (await M N) := await (subst σ M) (subst (Sub.cong σ) N);
     subst σ (unleash V) := unleash (subst σ V)
   }.
 
@@ -91,7 +95,7 @@ Theorem ren_coh {n1 n2 n3 τ} (ρ12 : Ren.t n1 n2) (ρ23 : Ren.t n2 n3) (M : tm 
   =
   M.[ρ23 ∘ ρ12]%tm.
 Proof.
-  funelim (map ρ12 M); simp map; rewrites.
+  funelim (map ρ12 M); simp map; rewrites;
   do ? f_equal; by rewrite Ren.cong_coh.
 Qed.
 
@@ -115,8 +119,8 @@ Theorem ren_subst_coh {n1 n2 n3 τ} (σ12 : Sub.t n1 n2) (ρ23 : Ren.t n2 n3) (M
   =
   (M ⫽ (map ρ23 ∘ σ12)).
 Proof.
-  funelim (subst σ12 M); simp subst; simp map; rewrites.
-  do ? f_equal.
+  funelim (subst σ12 M); simp subst; simp map; rewrites;
+  do ? f_equal;
   by rewrite ren_subst_cong_coh.
 Qed.
 
@@ -125,8 +129,8 @@ Theorem subst_ren_coh {n1 n2 n3 τ} (ρ12 : Ren.t n1 n2) (σ23 : Sub.t n2 n3) (M
   =
   M ⫽ (σ23 ∘ ρ12).
 Proof.
-  funelim (M.[ρ12]); simp subst; rewrites; auto.
-  do ? f_equal.
+  funelim (M.[ρ12]); simp subst; rewrites; auto;
+  do ? f_equal;
   by rewrite -Sub.cong_coh.
 Qed.
 
@@ -136,9 +140,9 @@ Theorem subst_coh {n1 n2 n3 τ} (σ12 : Sub.t n1 n2) (σ23 : Sub.t n2 n3) (M : t
   M ⫽ (σ23 ◎ σ12).
 Proof.
   funelim (M ⫽ σ12);
-  simp subst; rewrites.
-  do ? f_equal.
-  T.eqcd=> x; dependent elimination x; auto; simpl.
+  simp subst; rewrites;
+  do ? f_equal;
+  T.eqcd=> x; dependent elimination x; auto; simpl;
   by rewrite /compose ren_subst_coh subst_ren_coh.
 Qed.
 
@@ -152,14 +156,13 @@ Qed.
 Theorem subst_ret {n τ} (M : tm _ τ) :
   M ⫽ (@var n) = M.
 Proof.
-  funelim (M ⫽ (@var n)); auto; f_equal; rewrites.
-  simp subst in H0.
-  have: Sub.cong (@var n) = @var _.
-  - T.eqcd=> x.
-    dependent induction x; auto.
+  have: ∀ n, Sub.cong (@var n) = @var _.
+  - move=> n'; T.eqcd=> x.
+    by dependent elimination x.
   - move=> q.
-    rewrite q.
-    apply: H; by rewrite ?q.
+    funelim (M ⫽ (@var n)); auto; f_equal; auto.
+    + rewrite q; apply: H; try by [eauto]; rewrite q; auto.
+    + rewrite q; apply: H0; try by [eauto]; rewrite q; auto.
 Qed.
 
 Theorem subst_closed {τ} (σ : Sub.t 0 0) (M : tm 0 τ) :
@@ -170,3 +173,14 @@ Proof.
   T.eqcd => x.
   dependent destruction x.
 Qed.
+
+
+
+
+Inductive terminal {n} : tm n #c → Prop :=
+| terminal_ret : ∀ {V}, terminal (ret V)
+| terminal_pop : ∀ {M}, terminal (pop M).
+
+Inductive red {n} : tm n #c → tm n #c → Prop :=
+| red_push_cong : ∀ {V M M'}, red M M' → red (push V M) (push V M')
+| red_push_pop : ∀ {V M}, red (push V (pop M)) (M ⫽ Sub.inst0 V).
