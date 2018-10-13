@@ -21,8 +21,10 @@ Inductive tm (n : nat) : sort → Type :=
 | hold_v : tm n #v → tm n #V (* curien: ↓ *)
 | ret : tm n #V → tm n #v (* curien: ↑ *)
 | lam : tm (S n) #c → tm n #v
-| emp : tm n #E
+| emp : tm n #E (* ⋄ *)
 | push : tm n #V → tm n #E → tm n #E
 | hold_e : tm n #e → tm n #E
-| μpair : tm (S (S n)) #c → tm n #e
+| ask_pair : tm (S (S n)) #c → tm n #e (* μ~(x, y) *)
+| ask : tm (S n) #c → tm n #e
+| adj : tm n #c → tm n #v (* the adjoint, μ⋄.c *)
 | cut : tm n #v → tm n #e → tm n #c.
