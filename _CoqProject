@@ -1,0 +1,6 @@
+-Q theories cbpv
+-arg -w -arg -notation-overridden,-redundant-canonical-projection,-several-object-files
+theories/Notation.v
+theories/Tactic.v
+theories/Var.v
+theories/CBPV.v
