@@ -19,7 +19,7 @@ Inductive tm (n : nat) : sort → Type :=
 | var : Var n → tm n #V
 | pair : tm n #V → tm n #V → tm n #V
 | hold_v : tm n #v → tm n #V (* curien: ↓ *)
-| ret : tm n #V → tm n #v (* curine: ↑ *)
+| ret : tm n #V → tm n #v (* curien: ↑ *)
 | lam : tm (S n) #c → tm n #v
 | emp : tm n #E
 | push : tm n #V → tm n #E → tm n #E
