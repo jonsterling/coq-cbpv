@@ -153,28 +153,30 @@ Proof.
   dependent destruction x; auto.
 Qed.
 
-Theorem subst_ret {n τ} (M : tm _ τ) :
+Theorem cong_var {n} : Sub.cong (@var n) = @var _.
+Proof.
+  T.eqcd=> x.
+  by dependent elimination x.
+Qed.
+
+Hint Resolve cong_var.
+Hint Rewrite @cong_var.
+
+Theorem subst_id {n τ} (M : tm _ τ) :
   M ⫽ (@var n) = M.
 Proof.
-  have: ∀ n, Sub.cong (@var n) = @var _.
-  - move=> n'; T.eqcd=> x.
-    by dependent elimination x.
-  - move=> q.
-    funelim (M ⫽ (@var n)); auto; f_equal; auto.
-    + rewrite q; apply: H; try by [eauto]; rewrite q; auto.
-    + rewrite q; apply: H0; try by [eauto]; rewrite q; auto.
+  funelim (M ⫽ (@var n)); f_equal; try by [auto];
+  autorewrite with core in *; auto.
 Qed.
 
 Theorem subst_closed {τ} (σ : Sub.t 0 0) (M : tm 0 τ) :
   M ⫽ σ = M.
 Proof.
-  rewrite -{2}(subst_ret M).
+  rewrite -{2}(subst_id M).
   f_equal.
   T.eqcd => x.
   dependent destruction x.
 Qed.
-
-
 
 
 Inductive terminal {n} : tm n #c → Prop :=
